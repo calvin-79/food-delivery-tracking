@@ -48,15 +48,11 @@ type Order = record {
   status : text;
   total : nat64;
   delivered : bool;
-  items : vec record { nat64; nat32 };
+  items : vec record { nat64; nat64 };
   client_id : nat64;
 };
-type OrderPayload = record {
-  status : text;
-  delivered : bool;
-  items : vec record { nat64; nat32 };
-  client_id : nat64;
-};
+type OrderItem = record { quantity : nat64; item_id : nat64 };
+type OrderPayload = record { items : vec OrderItem; client_id : nat64 };
 type Result = variant { Ok : text; Err : Error };
 type Result_1 = variant { Ok : Client; Err : Error };
 type Result_2 = variant { Ok : Item; Err : Error };
@@ -89,6 +85,7 @@ service : {
   get_all_reviews : () -> (Result_8) query;
   get_client_by_id : (nat64) -> (Result_9) query;
   get_food_item_by_id : (nat64) -> (Result_2) query;
+  get_food_items_by_category : (text) -> (Result_6) query;
   get_order_by_id : (nat64) -> (Result_3) query;
   get_orders_by_client_id : (nat64) -> (Result_7) query;
   get_reviews_by_item_id : (nat64) -> (Result_8) query;

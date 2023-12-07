@@ -28,7 +28,7 @@ struct Client {
 struct Order {
     id: u64,
     client_id: u64,
-    items: HashMap<u64, u32>,
+    items: HashMap<u64, u64>,
     total: u64,
     status: String,
     delivered: bool,
@@ -167,9 +167,13 @@ struct ClientPayload {
 #[derive(candid::CandidType, Clone, Serialize, Deserialize)]
 struct OrderPayload {
     client_id: u64,
-    items: HashMap<u64, u32>,
-    status: String,
-    delivered: bool,
+    items: Vec<OrderItem>,
+}
+
+#[derive(candid::CandidType, Clone, Serialize, Deserialize)]
+struct OrderItem {
+    item_id: u64,
+    quantity: u64,
 }
 
 #[derive(candid::CandidType, Clone, Serialize, Deserialize)]
@@ -321,6 +325,29 @@ fn delete_food_item_by_id(id: u64) -> Result<String, Error> {
     }
 }
 
+//  get food items by category
+#[ic_cdk::query]
+fn get_food_items_by_category(category: String) -> Result<Vec<Item>, Error> {
+    // Retrieve all items from the storage
+    let items_vec: Vec<(u64, Item)> = ITEM_STORAGE.with(|s| s.borrow().iter().collect());
+    // Extract the items from the tuple and create a vector
+    let items: Vec<Item> = items_vec.into_iter().map(|(_, item)| item).collect();
+
+    // Filter the items by category
+    let items_by_category: Vec<Item> = items
+        .into_iter()
+        .filter(|item| (item.category).contains(&category) || (item.description).contains(&category))
+        .collect();
+
+    // Check if any items are found
+    match items_by_category.len() {
+        0 => Err(Error::NotFound {
+            msg: format!("no Food items for category: {} could be found", category),
+        }),
+        _ => Ok(items_by_category),
+    }
+}
+
 // Define query functions to get all Orders
 #[ic_cdk::query]
 fn get_all_orders() -> Result<Vec<Order>, Error> {
@@ -407,6 +434,7 @@ fn confirm_delivery(payload: ConfirmDeliveryPayload) -> Result<String, Error> {
                                 order.id,
                                 Order {
                                     delivered: true,
+                                    status: "order delivered".to_string(),
                                     ..order
                                 },
                             )
@@ -472,14 +500,38 @@ fn create_order(payload: OrderPayload) -> Result<Order, Error> {
         })
         .expect("Cannot increment Ids");
 
+    let payload_items: HashMap<u64, u64> = payload
+        .items
+        .into_iter()
+        .map(|item| (item.item_id, item.quantity))
+        .collect();
+
+    let items_vec: Vec<(u64, Item)> = ITEM_STORAGE.with(|s| s.borrow().iter().collect());
+    let items: Vec<Item> = items_vec.into_iter().map(|(_, item)| item).collect();
+    // get order items from payload
+    let order_items: Vec<Item> = items
+        .into_iter()
+        .filter(|item| payload_items.contains_key(&item.id))
+        .collect();
+
+    // calculate total price by multiplying item price by quantity
+    let total: u64 = order_items
+        .iter()
+        .map(|item| {
+            let item = ITEM_STORAGE.with(|s| s.borrow().get(&item.id).unwrap());
+            let quantity = payload_items.get(&item.id).unwrap();
+            item.price * quantity
+        })
+        .sum();
+
     // Create a new Order
     let order: Order = Order {
         id,
         client_id: payload.client_id,
-        items: payload.items,
-        total: 0,
-        status: payload.status,
-        delivered: payload.delivered,
+        items: payload_items,
+        total,
+        status: "order placed".to_string(),
+        delivered: false,
     };
 
     // Store the new Order in the storage
