@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "src/food_delivery_backend",
+]
+resolver = "2"

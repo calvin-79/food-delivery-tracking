@@ -1,0 +1,30 @@
+{
+  "canisters": {
+    "food_delivery_backend": {
+      "candid": "src/food_delivery_backend/food_delivery_backend.did",
+      "package": "food_delivery_backend",
+      "type": "rust"
+    },
+    "food_delivery_frontend": {
+      "dependencies": [
+        "food_delivery_backend"
+      ],
+      "frontend": {
+        "entrypoint": "src/food_delivery_frontend/src/index.html"
+      },
+      "source": [
+        "src/food_delivery_frontend/assets",
+        "dist/food_delivery_frontend/"
+      ],
+      "type": "assets"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

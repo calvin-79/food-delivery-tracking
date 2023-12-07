@@ -1,0 +1,96 @@
+type Client = record {
+  id : nat64;
+  password : text;
+  name : text;
+  email : text;
+  order_ids : vec nat64;
+  address : text;
+  phone : text;
+};
+type ClientPayload = record {
+  password : text;
+  name : text;
+  email : text;
+  address : text;
+  phone : text;
+};
+type ClientResponse = record {
+  id : nat64;
+  name : text;
+  email : text;
+  order_ids : vec nat64;
+  address : text;
+  phone : text;
+};
+type ConfirmDeliveryPayload = record { password : text; order_id : nat64 };
+type DeleteReviewPayload = record { review_id : nat64; password : text };
+type Error = variant {
+  AlreadyDelivered : record { msg : text };
+  InvalidPayload : record { msg : text };
+  NotFound : record { msg : text };
+  Unauthorized : record { msg : text };
+};
+type Item = record {
+  id : nat64;
+  name : text;
+  description : text;
+  category : text;
+  price : nat64;
+};
+type ItemPayload = record {
+  name : text;
+  description : text;
+  category : text;
+  price : nat64;
+};
+type Order = record {
+  id : nat64;
+  status : text;
+  total : nat64;
+  delivered : bool;
+  items : vec record { nat64; nat32 };
+  client_id : nat64;
+};
+type OrderPayload = record {
+  status : text;
+  delivered : bool;
+  items : vec record { nat64; nat32 };
+  client_id : nat64;
+};
+type Result = variant { Ok : text; Err : Error };
+type Result_1 = variant { Ok : Client; Err : Error };
+type Result_2 = variant { Ok : Item; Err : Error };
+type Result_3 = variant { Ok : Order; Err : Error };
+type Result_4 = variant { Ok : Review; Err : Error };
+type Result_5 = variant { Ok : vec ClientResponse; Err : Error };
+type Result_6 = variant { Ok : vec Item; Err : Error };
+type Result_7 = variant { Ok : vec Order; Err : Error };
+type Result_8 = variant { Ok : vec Review; Err : Error };
+type Result_9 = variant { Ok : ClientResponse; Err : Error };
+type Review = record {
+  id : nat64;
+  comment : text;
+  rating : nat64;
+  client_id : nat64;
+  item_id : nat64;
+};
+type ReviewPayload = record { comment : text; rating : nat64; item_id : nat64 };
+service : {
+  confirm_delivery : (ConfirmDeliveryPayload) -> (Result);
+  create_client : (ClientPayload) -> (Result_1);
+  create_food_item : (ItemPayload) -> (Result_2);
+  create_order : (OrderPayload) -> (Result_3);
+  create_review : (ReviewPayload) -> (Result_4);
+  delete_food_item_by_id : (nat64) -> (Result);
+  delete_review_by_id : (DeleteReviewPayload) -> (Result);
+  get_all_clients : () -> (Result_5) query;
+  get_all_food_items : () -> (Result_6) query;
+  get_all_orders : () -> (Result_7) query;
+  get_all_reviews : () -> (Result_8) query;
+  get_client_by_id : (nat64) -> (Result_9) query;
+  get_food_item_by_id : (nat64) -> (Result_2) query;
+  get_order_by_id : (nat64) -> (Result_3) query;
+  get_orders_by_client_id : (nat64) -> (Result_7) query;
+  get_reviews_by_item_id : (nat64) -> (Result_8) query;
+  update_order_status : (nat64, text) -> (Result);
+}
