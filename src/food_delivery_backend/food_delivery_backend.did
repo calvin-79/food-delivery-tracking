@@ -1,29 +1,19 @@
 type Client = record {
   id : nat64;
-  password : text;
   name : text;
+  client_principal : text;
   email : text;
-  order_ids : vec nat64;
   address : text;
   phone : text;
 };
 type ClientPayload = record {
-  password : text;
   name : text;
   email : text;
   address : text;
   phone : text;
 };
-type ClientResponse = record {
-  id : nat64;
-  name : text;
-  email : text;
-  order_ids : vec nat64;
-  address : text;
-  phone : text;
-};
-type ConfirmDeliveryPayload = record { password : text; order_id : nat64 };
-type DeleteReviewPayload = record { review_id : nat64; password : text };
+type ConfirmDeliveryPayload = record { order_id : nat64 };
+type DeleteReviewPayload = record { review_id : nat64 };
 type Error = variant {
   AlreadyDelivered : record { msg : text };
   InvalidPayload : record { msg : text };
@@ -36,6 +26,7 @@ type Item = record {
   description : text;
   category : text;
   price : nat64;
+  item_owner : text;
 };
 type ItemPayload = record {
   name : text;
@@ -58,11 +49,10 @@ type Result_1 = variant { Ok : Client; Err : Error };
 type Result_2 = variant { Ok : Item; Err : Error };
 type Result_3 = variant { Ok : Order; Err : Error };
 type Result_4 = variant { Ok : Review; Err : Error };
-type Result_5 = variant { Ok : vec ClientResponse; Err : Error };
+type Result_5 = variant { Ok : vec Client; Err : Error };
 type Result_6 = variant { Ok : vec Item; Err : Error };
 type Result_7 = variant { Ok : vec Order; Err : Error };
 type Result_8 = variant { Ok : vec Review; Err : Error };
-type Result_9 = variant { Ok : ClientResponse; Err : Error };
 type Review = record {
   id : nat64;
   comment : text;
@@ -83,7 +73,7 @@ service : {
   get_all_food_items : () -> (Result_6) query;
   get_all_orders : () -> (Result_7) query;
   get_all_reviews : () -> (Result_8) query;
-  get_client_by_id : (nat64) -> (Result_9) query;
+  get_client_by_id : (nat64) -> (Result_1) query;
   get_food_item_by_id : (nat64) -> (Result_2) query;
   get_food_items_by_category : (text) -> (Result_6) query;
   get_order_by_id : (nat64) -> (Result_3) query;
