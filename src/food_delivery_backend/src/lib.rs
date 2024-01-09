@@ -269,65 +269,25 @@ fn create_food_item(payload: ItemPayload) -> Result<Item, Error> {
     // Create a new Food item
     let item: Item = Item {
         id,
-        name: payload.name,
+        name: payload.name.clone(),
         description: payload.description,
         price: payload.price,
         category: payload.category,
     };
 
     // Store the new Food item in the storage
-    ITEM_STORAGE.with(|s| s.borrow_mut().insert(id, item.clone()));
-
-    // Return the new Food item
-    Ok(item)
-}
-
-// Define query functions to delete a specific Food Item by id
-#[ic_cdk::update]
-fn delete_food_item_by_id(id: u64) -> Result<String, Error> {
-    //    check if the item is exists
-    match ITEM_STORAGE.with(|s| s.borrow().get(&id)) {
-        Some(_) => (),
-        None => {
-            return Err(Error::NotFound {
-                msg: format!("Food item id: {} could not be found", id),
-            })
-        }
-    }
-
-    // delete item reviews
-    let reviews_vec: Vec<(u64, Review)> = REVIEW_STORAGE.with(|s| s.borrow().iter().collect());
-    // Extract the reviews from the tuple and create a vector
-    let reviews: Vec<Review> = reviews_vec.into_iter().map(|(_, review)| review).collect();
-
-    // Filter the reviews by item_id
-    let reviews_by_item_id: Vec<Review> = reviews
-        .into_iter()
-        .filter(|review| review.item_id == id)
-        .collect();
-
-    // Check if any reviews are found
-    match reviews_by_item_id.len() {
-        0 => (),
-        _ => {
-            for review in reviews_by_item_id {
-                REVIEW_STORAGE.with(|s| s.borrow_mut().remove(&review.id));
-            }
-        }
-    }
-
-    // Delete the Food item from the storage
-    match ITEM_STORAGE.with(|s| s.borrow_mut().remove(&id)) {
-        Some(_) => Ok(format!("Food item id: {} deleted", id)),
-        None => Err(Error::NotFound {
-            msg: format!("Food item id: {} could not be deleted", id),
+    match ITEM_STORAGE.with(|s| s.borrow_mut().insert(id, item.clone())) {
+        Some(_) => Err(Error::NotFound {
+            msg: format!("Food item {} could not be created", payload.name),
         }),
+        None => Ok(item),
     }
 }
 
 //  get food items by category
 #[ic_cdk::query]
 fn get_food_items_by_category(category: String) -> Result<Vec<Item>, Error> {
+    let category = category.to_lowercase();
     // Retrieve all items from the storage
     let items_vec: Vec<(u64, Item)> = ITEM_STORAGE.with(|s| s.borrow().iter().collect());
     // Extract the items from the tuple and create a vector
@@ -336,7 +296,9 @@ fn get_food_items_by_category(category: String) -> Result<Vec<Item>, Error> {
     // Filter the items by category
     let items_by_category: Vec<Item> = items
         .into_iter()
-        .filter(|item| (item.category).contains(&category) || (item.description).contains(&category))
+        .filter(|item| {
+            (item.category).to_lowercase().contains(&category) || (item.description).to_lowercase().contains(&category)
+        })
         .collect();
 
     // Check if any items are found
@@ -535,10 +497,31 @@ fn create_order(payload: OrderPayload) -> Result<Order, Error> {
     };
 
     // Store the new Order in the storage
-    ORDER_STORAGE.with(|s| s.borrow_mut().insert(id, order.clone()));
+    match ORDER_STORAGE.with(|s| s.borrow_mut().insert(id, order.clone())) {
+        Some(_) => Err(Error::NotFound {
+            msg: format!("Order id: {} could not be created", id),
+        }),
+        None => {
+            // Retrieve the client from the storage
+            let client: Option<Client> = CLIENT_STORAGE.with(|s| s.borrow().get(&payload.client_id));
 
-    // Return the new Order
-    Ok(order)
+            // Check if the client is found
+            match client {
+                Some(mut client) => {
+                    // Add the order id to the client
+                    client.order_ids.push(id);
+
+                    // Update the client in the storage
+                    CLIENT_STORAGE.with(|s| s.borrow_mut().insert(client.id, client.clone()));
+
+                    Ok(order)
+                }
+                None => Err(Error::NotFound {
+                    msg: format!("no client could be found for id: {}", payload.client_id),
+                }),
+            }
+        }
+    }
 }
 
 // Define query functions to get all Reviews
@@ -602,10 +585,12 @@ fn create_review(payload: ReviewPayload) -> Result<Review, Error> {
     };
 
     // Store the new Review in the storage
-    REVIEW_STORAGE.with(|s| s.borrow_mut().insert(id, review.clone()));
-
-    // Return the new Review
-    Ok(review)
+    match REVIEW_STORAGE.with(|s| s.borrow_mut().insert(id, review.clone())) {
+        Some(_) => Err(Error::NotFound {
+            msg: format!("Review id: {} could not be created", id),
+        }),
+        None => Ok(review),
+    }
 }
 
 // Define query functions to delete a specific Review by id
@@ -742,9 +727,12 @@ fn create_client(payload: ClientPayload) -> Result<Client, Error> {
     };
 
     // Store the new Client in the storage
-    CLIENT_STORAGE.with(|s| s.borrow_mut().insert(id, client.clone()));
-
-    Ok(client)
+    match CLIENT_STORAGE.with(|s| s.borrow_mut().insert(id, client.clone())) {
+        Some(_) => Err(Error::NotFound {
+            msg: format!("Client id: {} could not be created", id),
+        }),
+        None => Ok(client),
+    }
 }
 
 // Define an Error enum for handling errors
