@@ -500,11 +500,11 @@ fn create_order(payload: OrderPayload) -> Result<Order, Error> {
         })
         .expect("Cannot increment Ids");
 
-    let payload_items: HashMap<u64, u64> = payload
-        .items
-        .into_iter()
-        .map(|item| (item.item_id, item.quantity))
-        .collect();
+    // add quantities of items with the same item Id
+    let mut payload_items: HashMap<u64, u64> = HashMap::new();
+    for item in payload.items {
+        *payload_items.entry(item.item_id).or_insert(0) += item.quantity;
+    }
 
     let items_vec: Vec<(u64, Item)> = ITEM_STORAGE.with(|s| s.borrow().iter().collect());
     let items: Vec<Item> = items_vec.into_iter().map(|(_, item)| item).collect();
